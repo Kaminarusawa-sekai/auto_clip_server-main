@@ -1,0 +1,21 @@
+from contentgenerate import Industry_segmentation_search
+from contentgenerate import industry_segmentation_anaylsis
+
+from contentgenerate import segmented_products_search
+from contentgenerate import segmented_products_anaysis
+
+from contentgenerate import competitive_product_analysis
+
+def get_segmentation_anaysis(industry,enterprise_name,enterprise_industry_introduction):
+    segmentation_description=Industry_segmentation_search.get_industry_segmentation_search(industry)
+    res=industry_segmentation_anaylsis.get_industry_segmentation_anaysis(enterprise_name,enterprise_industry_introduction,segmentation_description)
+    return res
+
+def get_product_anaysis(industry,segmentation,enterprise_name,enterprise_industry_introduction):
+    segmentation_description=segmented_products_search.get_segmentation_product_search(industry,segmentation)
+    res=segmented_products_anaysis.get_segmentation_prodcut_anaysis(enterprise_name,enterprise_industry_introduction,segmentation_description)
+    return res
+
+def get_competitive_anaysis(enterprise_name,product_name,product_description):
+    res=competitive_product_analysis.get_industry_segmentation_anaysis(enterprise_name,product_name,product_description)
+    return res

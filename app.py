@@ -6,6 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import autogen
 import engine
+
+from contentgenerate import llm_generate_content
 # def greet(name, intensity):
 
 #     return "Hello, " + str(name) + str(intensity)
@@ -123,7 +125,8 @@ def change_button_able_upload(fileGR):
 def change_button_able_delate(fileGR):
      if fileGR!=None:
           return gr.update(visible=False)
-     
+
+
 
 def clip(file_scipt):
     return open_yaml(file_script)
@@ -132,27 +135,49 @@ def clip(file_scipt):
 
      
 with gr.Blocks() as demo:
-    file_script = gr.File(label="选择要剪辑的脚本文件，请确保素材库中有与脚本文件对应的素材")
-    
-    file_footage = gr.File(label="选择素材文件上传")
-    button=gr.Button("开始剪辑")
-    # button.visible=False
+    with gr.Column():
+        text_enterprise_name=gr.Text(label="输入企业的名字")
+        text_enterprise_industry_name=gr.Text(label="输入企业擅长的行业描述")
 
-    file_footage.upload(fn=change_button_able_upload,inputs=file_footage,outputs=button)
-    # file_script.delete(fn=change_button_able_delate,inputs=file_script,outputs=button)
-    gr.Markdown("### 素材库")
-    # 创建一个表格输出用于显示文件信息
-    file_table = gr.Dataframe(headers=["名称", "大小", "最后修改"], label="文件列表")
-    
-    # 创建一个按钮用于刷新文件列表
-    refresh_button = gr.Button("刷新文件列表")
-    
-    # 当点击刷新按钮时，调用list_files函数更新文件列表
-    refresh_button.click(list_files, outputs=file_table)
-    demo.load(list_files, outputs=file_table)
+        
+        text_industry_name=gr.Text(label="输入想了解的行业")
+        button=gr.Button("开始生成细分赛道推荐报告")
+        text_segmented=gr.Text(label="产业细分赛道推荐报告")
+        button.click(fn=llm_generate_content.get_segmentation_anaysis,inputs=[text_industry_name,text_enterprise_name,text_enterprise_industry_name],outputs=text_segmented)
 
-    text = gr.Textbox(lines=2, interactive=True)
-    button.click(fn=clip, inputs=file_script, outputs=text)
+        text_segmented_name=gr.Text(label="输入想了解的细分")
+        button=gr.Button("开始生成赛道产品推荐报告")
+        text_product=gr.Text(label="赛道产品推荐报告")
+        button.click(fn=llm_generate_content.get_product_anaysis,inputs=[text_industry_name,text_segmented_name,text_enterprise_name,text_enterprise_industry_name],outputs=text_product)
+
+        text_product_name=gr.Text(label="输入想了解的竞品")
+        text_product_description=gr.Text(label="需要的话输入一些产品描述")
+        button=gr.Button("开始生成产品竞品报告")
+        text_competitive=gr.Text(label="产品竞品报告")
+        button.click(fn=llm_generate_content.get_competitive_anaysis,inputs=[text_enterprise_name,text_product_name,text_product_description],outputs=text_competitive)
+
+    with gr.Column():
+        file_script = gr.File(label="选择要剪辑的脚本文件，请确保素材库中有与脚本文件对应的素材")
+        
+        file_footage = gr.File(label="选择素材文件上传")
+        button=gr.Button("开始剪辑")
+        # button.visible=False
+
+        file_footage.upload(fn=change_button_able_upload,inputs=file_footage,outputs=button)
+        # file_script.delete(fn=change_button_able_delate,inputs=file_script,outputs=button)
+        gr.Markdown("### 素材库")
+        # 创建一个表格输出用于显示文件信息
+        file_table = gr.Dataframe(headers=["名称", "大小", "最后修改"], label="文件列表")
+        
+        # 创建一个按钮用于刷新文件列表
+        refresh_button = gr.Button("刷新文件列表")
+        
+        # 当点击刷新按钮时，调用list_files函数更新文件列表
+        refresh_button.click(list_files, outputs=file_table)
+        demo.load(list_files, outputs=file_table)
+
+        text = gr.Textbox(lines=2, interactive=True)
+        button.click(fn=clip, inputs=file_script, outputs=text)
 
 
 demo.launch(share=True)
