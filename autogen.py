@@ -12,6 +12,7 @@ class AutoGen:
         self.cook_book = {}
         self.script_file_path = script_file_path
         self.project_path = project_path
+
     
     def read_script_yaml(self, yaml_file_path):
         try:
@@ -22,6 +23,10 @@ class AutoGen:
             print(f"File '.yaml' not found")
         except yaml.YAMLError as e:
             print(f"Error parsing: {e}")
+
+    def get_project_name(self):
+        script_config = self.read_script_yaml(self.script_file_path)
+        return script_config["编号"]
 
     def create_scene_object(self, solid_scene_name, solid_scene_file_name, clip_duration, keep_full_audio, audio_volume, random_scene_tag, random_scene_duration, is_random):
         scene = {}
@@ -149,7 +154,11 @@ class AutoGen:
         #     f.write(srtlines)
         #load yaml
         if os.path.exists(os.path.join(self.project_path, mid, "cookbook.yaml")):
-            self.cook_book = self.read_script_yaml(os.path.join(self.project_path, mid, "cookbook.yaml"))
+            # self.cook_book = self.read_script_yaml(os.path.join(self.project_path, mid, "cookbook.yaml"))
+            cook_book = {}
+            cook_book["素材文件前缀"] = script_config["工程"]
+            cook_book["影片"] = []
+            self.cook_book = cook_book
         else:
             cook_book = {}
             cook_book["素材文件前缀"] = script_config["工程"]

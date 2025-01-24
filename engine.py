@@ -48,8 +48,8 @@ class Engine:
                     scene_time = item["随机镜头时长"]
                     keep_full_audio = item["保留全部音频"]
                     audio_volume = 0
-                    selectedFileName = random_file_in_subfolder(self.assets_path, prefix)
-                    selectedFilePath = os.path.join(self.assets_path, tag, selectedFileName)
+                    selectedFilePath = random_file_in_subfolder(self.assets_path, tag)
+                    # selectedFilePath = os.path.join(self.assets_path, selectedFileName)
                     print("selectedFilePath:", selectedFilePath)
                     info = self.get_video_info(selectedFilePath)
                     duration = round(info["duration"],2)
@@ -89,15 +89,13 @@ class Engine:
             print(clips_keys)
             print(self.clips_path_map)
             print("=========================")
-            #获取片尾文件路径
-            for dirpath,dirnames,filenames in os.walk(self.assets_path):
-                for filename in filenames:
-                    if filename.startwith(prefix):
-                        output_path = os.path.join(self.assets_path,filename)
+            #获取输出文件路径
+            
             
 
-            # output_path = os.path.join(".", self.project_path, new_video_name + ".mp4")
+            output_path = os.path.join(".", self.project_path, new_video_name + ".mp4")
             self.merge_videos(self.clips_path_map, clips_keys, output_path, self.video_title, self.bgm_obj, self.audio_obj, self.subtitle_obj, self.tail_obj)
+            return output_path
 
     
     def clip_video(self, tag, video_path, start_time, end_time, new_video_name, keep_full_audio, audio_volume):
@@ -220,7 +218,7 @@ class Engine:
         
         #背景音乐
         if bgm_obj:
-            bgm_file = os.path.join(self.assets_path, "BGM", bgm_obj["文件"])
+            bgm_file = os.path.join(self.assets_path, bgm_obj["文件"])
             bgm_vol = bgm_obj["音量"]
             half_volumn_effect=afx.MultiplyVolume(0.5)
             bgm_clip = AudioFileClip(bgm_file).with_effects([half_volumn_effect])
@@ -243,7 +241,7 @@ class Engine:
         
         #片尾
         if tail_obj:
-            tail_clip = VideoFileClip(os.path.join(self.assets_path, "片尾", tail_obj["文件"]))
+            tail_clip = VideoFileClip(os.path.join(self.assets_path, tail_obj["文件"]))
             half_volumn_effect=afx.MultiplyVolume(tail_obj["音量"])
             if tail_clip.audio!=None:
                 tail_audio_track = tail_clip.audio.with_effects([half_volumn_effect])
@@ -282,6 +280,7 @@ class Engine:
             
             # final_clip.write_videofile(output_path, codec='libx264')
             final_video.close()
+            return output_path
         
     def add_watermark(self, image_path, watermark_text, output_path):
         """
@@ -409,10 +408,14 @@ def random_file_in_subfolder(folder_path, prefix):
     # subfolder_path = os.path.join(folder_path, selected_subfolder)
     # files_in_subfolder = [file for file in os.listdir(subfolder_path) if os.path.isfile(os.path.join(subfolder_path, file)) and file.startswith(prefix)]
     result=[]
-    for dirpath,dirnames,filenames in os.walk(folder_path):
+    for dirpath, dirnames, filenames in os.walk(folder_path):
         for filename in filenames:
-            if filename.startwith(prefix):
+            if filename.startswith(prefix):
                 result.append(filename)
+    
+    if not result:
+        return
+
     selected_file=random.choice(result)
 
     if not selected_file:
@@ -489,7 +492,8 @@ def NewInstance(prefix, video_title, project_path, assets_path, video_content, m
     返回值: 无
     """
     gen = Engine(prefix, video_title, project_path, assets_path, movie_cover, bgm_obj, audio_obj, subtitle_obj, tail_obj, mid)
-    gen.process_video_content(video_content)
+    output_path=gen.process_video_content(video_content)
+    return output_path
 
 if __name__ == "__main__":
     # assets_path = "素材"
