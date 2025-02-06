@@ -42,6 +42,7 @@ class Engine:
         with ThreadPoolExecutor(max_workers=1) as executor:  # Adjust max_workers as needed
             futures = []
             clips_keys = []
+            i=0
             for item in content:
                 if item["是否随机"]: 
                     tag = item["随机镜头类别"]
@@ -64,9 +65,11 @@ class Engine:
                         end_time = start_time + scene_time
 
                     #创建线程
-                    future = executor.submit(self.clip_video, tag, selectedFilePath, start_time, end_time, new_video_name,  keep_full_audio, audio_volume)
+                    # future = executor.submit(self.clip_video, tag, selectedFilePath, start_time, end_time, new_video_name,  keep_full_audio, audio_volume)
+                    future = executor.submit(self.clip_video, i, selectedFilePath, start_time, end_time, new_video_name,  keep_full_audio, audio_volume)
                     futures.append(future)
-                    clips_keys.append(tag)
+                    # clips_keys.append(tag)
+                    clips_keys.append(i)
                 else: 
                     clip_name = item["固定镜头名称"]
                     clip_file = os.path.join(self.project_path, item["固定镜头文件名称"])
@@ -76,9 +79,12 @@ class Engine:
                     keep_full_audio = item["保留全部音频"]
                     audio_volume = item["固定音频音量"]
                     #创建线程
-                    future = executor.submit(self.clip_video, clip_name, clip_file, clip_snippet_start, clip_snippet_end, new_video_name, keep_full_audio, audio_volume)
+                    # future = executor.submit(self.clip_video, clip_name, clip_file, clip_snippet_start, clip_snippet_end, new_video_name, keep_full_audio, audio_volume)
+                    future = executor.submit(self.clip_video, i, clip_file, clip_snippet_start, clip_snippet_end, new_video_name, keep_full_audio, audio_volume)
                     futures.append(future)
+                    # clips_keys.append(clip_name)
                     clips_keys.append(clip_name)
+                i=i+1
 
 
             #等待所有线程完成
@@ -142,7 +148,7 @@ class Engine:
             new_clip_path = os.path.join(clips_path, file_name)
 
             with self.clips_path_lock:
-                self.clips_path_map[tag] = {"new_clip_path": new_clip_path, "keep_full_audio": keep_full_audio, "audio_clip": audio_clip_path}
+                self.clips_path_map[tag] = {"new_clip_path": new_clip_path, "keep_full_audio": keep_full_audio, "audio_clip": audio_clip_path,"duration":video_clip.duration}
                 #将所有的视频片段全路径保存到一个数组中
                 print(os.path.join(clips_path, file_name))
                 video_clip.write_videofile(os.path.join(clips_path, file_name), codec="libx264", preset="ultrafast")
@@ -215,6 +221,7 @@ class Engine:
             
             final_time = final_time + new_clip.duration
             video_clips.append(new_clip)
+            print(new_clip.duration)
         
         #背景音乐
         if bgm_obj:
@@ -258,10 +265,11 @@ class Engine:
 
         if video_clips:
             final_clip = concatenate_videoclips(video_clips,method="compose")
-            video_audio_clip = final_clip.audio
-            # video_audio_clip = final_clip.audio.volumex(1)
-            audio_clips.append(video_audio_clip)
-            #视频声音和背景音乐，音频叠加
+            if final_clip.audio!=None:
+                video_audio_clip = final_clip.audio
+                # video_audio_clip = final_clip.audio.volumex(1)
+                audio_clips.append(video_audio_clip)
+                #视频声音和背景音乐，音频叠加
             audio_clip_add = CompositeAudioClip(audio_clips)
 
             if subtitle_obj:

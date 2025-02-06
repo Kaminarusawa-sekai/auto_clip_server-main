@@ -211,12 +211,31 @@ with gr.Blocks() as demo:
         button=gr.Button("开始生成产品竞品报告")
         md_competitive=gr.Markdown(value="产品竞品报告")
         button.click(fn=llm_generate_content.get_competitive_anaysis,inputs=[text_enterprise_name,text_product_name,text_product_description],outputs=md_competitive)
-    with gr.Tab("生成剪辑脚本"):
+    with gr.Tab("竞品报告生成剪辑脚本"):
         text_enterprise_name=gr.Text(label="输入企业的名字")
-        text_competitive_anaysis=gr.Text(label="输入竞品报告")
+        text_costumer_anaysis=gr.Text(label="输入竞品报告")
         button=gr.Button("开始生成剪辑脚本")
         md_screenplot=gr.Markdown(value="剪辑脚本")
-        button.click(fn=llm_generate_content.get_srennplay_plot,inputs=[text_enterprise_name,text_competitive_anaysis],outputs=md_screenplot)
+        button.click(fn=llm_generate_content.get_srennplay_plot,inputs=[text_enterprise_name,text_costumer_anaysis],outputs=md_screenplot)
+    with gr.Tab("产品找客户画像"):
+        text_product_name=gr.Text(label="输入产品的名字")
+        text_product_description=gr.Text(label="输入产品的描述")
+        button=gr.Button("开始生成产品客户画像")
+        md_competitive=gr.Markdown(value="客户画像报告")
+        button.click(fn=llm_generate_content.get_custom_profiling_anaysis,inputs=[text_product_name,text_product_description],outputs=md_competitive)
+    with gr.Tab("客户画像生成剪辑脚本"):
+        text_enterprise_name=gr.Text(label="输入企业的名字")
+        text_costumer_anaysis=gr.Text(label="输入客户画像")
+        button=gr.Button("开始生成剪辑脚本")
+        md_screenplot=gr.Markdown(value="剪辑脚本")
+        button.click(fn=llm_generate_content.get_srennplay_plot,inputs=[text_enterprise_name,text_costumer_anaysis],outputs=md_screenplot)
+   
+    with gr.Tab("从热门视频生成剪辑脚本"):
+        text_enterprise_name=gr.Text(label="输入你想要的主题")
+        file_footage = gr.File(label="选择热门短视频文件上传")
+        button=gr.Button("开始生成剪辑脚本")
+        md_screenplot=gr.Markdown(value="剪辑脚本")
+        button.click(fn=llm_generate_content.get_movie_to_screenplay,inputs=[text_enterprise_name,file_footage],outputs=md_screenplot)
     with gr.Tab("剪辑"):
         file_script = gr.File(label="选择要剪辑的脚本文件（.yaml），请确保素材库中有与脚本文件对应的素材")
         file_script.upload(fn=process_file,inputs=file_script,outputs=None)

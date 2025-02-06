@@ -4,6 +4,8 @@ import yaml
 import os
 import sys
 import argparse
+import string
+from zhon.hanzi import punctuation
 
 class AutoGen:
     def __init__(self, script_file_path, project_path):
@@ -40,14 +42,14 @@ class AutoGen:
         scene["是否随机"] = is_random
         return scene
 
-    def create_movie_object(self, title, cover, movie_id, scene_duration, bgm_name, bgm_volume, audio_volume):
+    def create_movie_object(self, title, cover, movie_id, scene_duration, bgm_name, bgm_volume, audio_volume,subtitle_list):
         movie = {}
         movie["标题"] = title
         movie["影片封面"] = cover
         movie["编号"] = movie_id
         content = []
         for key,value in scene_duration.items():
-            scene = self.create_scene_object("", "", "", False, 0, key, value, True)
+            scene = self.create_scene_object("", "", "", False, 0, subtitle_list[key]["镜头"], value, True)
             content.append(scene)
         movie["内容顺序"] = content
         bgm = {}
@@ -89,6 +91,8 @@ class AutoGen:
         for subtitle in subtitle_list:
             subtitle_text = subtitle["内容"]
             full_text = full_text + subtitle_text + "\n"
+        # full_text="".join([c for c in full_text if c not in string.punctuation])
+        # full_text="".join([c for c in full_text if c not in punctuation])
         print(full_text)
 
         #获取倒数第一个item的内容
@@ -99,27 +103,77 @@ class AutoGen:
         xt = ""
         du = 0
         i = 0
-        
+        i_offest=0
+
         with open(output_file, "wb") as file:
             async for chunk in tts.stream():
                 if chunk["type"] == "audio":
                     file.write(chunk["data"])
                 elif chunk["type"] == "WordBoundary":
-                    if xt == subtitle_list[i]["内容"] :
+                    #去除标点
+                    ci_no_punctuation="".join([c for c in subtitle_list[i]["内容"] if c not in string.punctuation])
+                    ci_no_punctuation="".join([c for c in ci_no_punctuation if c not in punctuation])
+                    xt = xt + chunk["text"]
+                    if xt == ci_no_punctuation:
+                        
+                        xt = ""
+                        # du = 0
+                        du=chunk["offset"]+chunk["duration"]-i_offest
+                        i_offest=chunk["offset"]+chunk["duration"]
+                        if i <len(subtitle_list)-1:
+                            scene_duration[i] = round(du * 1e-7, 2) 
+                        else:
+                            scene_duration[i] = round(du * 1e-7,2) + 3
                         i = i + 1
-                        xt = chunk["text"]
-                        du = 0
-                    else :
-                        xt = xt + chunk["text"]
-                        du = du + chunk["duration"]
+                    
+                    # else :
+                    #     xt = xt + chunk["text"]
+
+
+                        # du = du + chunk["duration"]
                     # print(xt)
                     # print(du)
                     #将du转换为秒
-                    if subtitle_list[i]["镜头"] == last_scene:
-                        scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7, 2) + 3
-                    else:
-                        scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7,2) + 1
+                    # if subtitle_list[i]["镜头"] == last_scene:
+                    #     scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7, 2) + 3
+                    # else:
+                    #     scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7,2) + 1
+                    # if i <len(subtitle_list)-1:
+                    #      scene_duration[i] = round(du * 1e-7, 2) + 1
+                    # else:
+                    #     scene_duration[i] = round(du * 1e-7,2) + 3
+                    # submaker.feed(chunk)
                     submaker.feed(chunk)
+
+
+                #     if chunk["type"] == "audio":
+                #       file.write(chunk["data"])
+                #     elif chunk["type"] == "WordBoundary":
+                 
+
+                    
+                #     #去除标点
+                #     ci_no_punctuation="".join([c for c in subtitle_list[i]["内容"] if c not in string.punctuation])
+                #     ci_no_punctuation="".join([c for c in ci_no_punctuation if c not in punctuation])
+                #     if xt == ci_no_punctuation:
+                #         i = i + 1
+                #         xt = chunk["text"]
+                #         du = 0
+                #     else :
+                #         xt = xt + chunk["text"]
+                #         du = du + chunk["duration"]
+                #     # print(xt)
+                #     # print(du)
+                #     #将du转换为秒
+                #     # if subtitle_list[i]["镜头"] == last_scene:
+                #     #     scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7, 2) + 3
+                #     # else:
+                #     #     scene_duration[subtitle_list[i]["镜头"]] = round(du * 1e-7,2) + 1
+                #     if i <len(subtitle_list)-1:
+                #          scene_duration[i] = round(du * 1e-7, 2) + 1
+                #     else:
+                #         scene_duration[i] = round(du * 1e-7,2) + 3
+                #     submaker.feed(chunk)
 
         # with open(output_file, "wb") as file:  
         #     async for chunk in tts.stream():  
@@ -165,7 +219,7 @@ class AutoGen:
             cook_book["影片"] = []
             self.cook_book = cook_book
     
-        movie = self.create_movie_object(title, "", mid, scene_duration, "Different.mp3", 0.5, 0.8)
+        movie = self.create_movie_object(title, "", mid, scene_duration, script_config["BGM"], 0.5, 0.8,subtitle_list)
         self.cook_book["影片"].append(movie)
         print(len(self.cook_book["影片"]))
         #对象转yaml
