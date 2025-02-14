@@ -3,11 +3,18 @@ import yaml
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import edge_tts
 
 import autogen
 import engine
 
 from contentgenerate import llm_generate_content
+from DataBase import database
+
+
+from DataBase import database
+
+import uuid
 
 DASHSCOPE_API_KEY="sk-a48a1d84e015410292d07021f60b9acb"
 import os
@@ -157,6 +164,55 @@ def clip(file_scipt):
     return open_yaml(file_script)
     # return "project\森咖啡-script2\森咖啡-script2.mp4"
 
+def auto_clip(text_enterprise_name,text_product_name,text_product_description,text_number):
+    market_plan=llm_generate_content.get_market_plan(text_enterprise_name,text_product_name,text_product_description)
+    hot_points_=database.get_hotpots()
+    hot_points=[]
+    for h in hot_points_:
+        hot_points.append(h[1])
+    hot_starts_=database.get_hotstarts()
+    hot_starts=[]
+    for h in hot_starts_:
+        hot_starts.append(h[1])
+    video_desciriptions={}
+    videos=database.get_video_names()
+    descriptions=database.get_video_descriptions()
+    for v in videos:
+        for d in descriptions:
+            if v[0]==d[0]:
+                video_desciriptions[v[1]]=d[1]
+    voices_= asyncio.run(edge_tts.list_voices())
+    voices=[]
+    for v in voices_:
+        if v["ShortName"].startswith("zh-CN"):
+            voices.append(v["ShortName"]+":"+v["Gender"]+","+v["VoiceTag"]["ContentCategories"]+","+v["VoiceTag"]["VoicePersonalities"])
+    
+    all_BGM_files = os.listdir(save_directory)
+    # 使用列表推导式筛选出所有以.mp4结尾的文件
+    bGMS = [file for file in all_BGM_files if file.endswith('.mp3')]
+
+    all_font_files = os.listdir(".")
+    # 使用列表推导式筛选出所有以.mp4结尾的文件
+    fonts = [file for file in all_font_files if file.endswith('.ttf')]
+
+    v=None
+
+    for i in range(text_number):
+        uid=uuid.uuid1()
+        yaml_file_redbbok="temp/redbook"+str(uid)+".yaml"
+        yaml_file_douyin="temp/douyin"+str(uid)+".yaml"
+        llm_generate_content.get_auto_screenplay(text_enterprise_name,text_product_name,text_product_description,market_plan,hot_points,hot_starts,video_desciriptions,voices,bGMS,fonts,yaml_file_redbbok,yaml_file_douyin)
+        v=open_yaml(yaml_file_redbbok)
+        v=open_yaml(yaml_file_douyin)
+    
+    return v
+
+
+    
+
+
+
+
 
 def process_file(file_obj):
     # file_obj['name'] 是原始文件名
@@ -185,7 +241,16 @@ def process_file(file_obj):
     #     content = f.read()
     #     return f"File content: {content}"
 
-     
+def process_upload(video_file, description):
+    id=uuid.uuid1()
+    save_file(video_file)
+    database.insert_id_name_data(id,video_file)
+    database.insert_id_description_data(id,description)
+
+    return "上传成功"
+
+
+database.create_db_and_tables()
 with gr.Blocks() as demo:
     with gr.Tab("行业找细分"):
         text_enterprise_name=gr.Text(label="输入企业的名字")
@@ -236,10 +301,35 @@ with gr.Blocks() as demo:
         button=gr.Button("开始生成剪辑脚本")
         md_screenplot=gr.Markdown(value="剪辑脚本")
         button.click(fn=llm_generate_content.get_movie_to_screenplay,inputs=[text_enterprise_name,file_footage],outputs=md_screenplot)
+    with gr.Tab("从剪辑脚本生成剪辑脚本"):
+        text_sceenplay_name=gr.Text(label="输入你想要改写的脚本")
+        button=gr.Button("开始生成剪辑脚本")
+        md_screenplot=gr.Markdown(value="剪辑脚本")
+        button.click(fn=llm_generate_content.get_screenplay_to_screenplay,inputs=[text_sceenplay_name],outputs=md_screenplot)
+
+    with gr.Tab("智能剪辑"):
+        text_enterprise_name=gr.Text(label="输入企业的名字")
+        text_product_name=gr.Text(label="输入产品的名字")
+        text_product_description=gr.Text(label="输入产品的描述")
+        text_number=gr.Text(label="输入想要视频条数")
+        button=gr.Button("开始智能剪辑")
+        video = gr.PlayableVideo()
+        button.click(fn=auto_clip, inputs=[text_enterprise_name,text_product_name,text_product_description,text_number], outputs=video)
+        
     with gr.Tab("剪辑"):
         file_script = gr.File(label="选择要剪辑的脚本文件（.yaml），请确保素材库中有与脚本文件对应的素材")
         file_script.upload(fn=process_file,inputs=file_script,outputs=None)
+
         file_footage = gr.File(label="选择素材文件上传")
+        text_video_description=gr.Text(label="输入视频的描述")
+        submit_button = gr.Button("上传素材")
+
+        output_text = gr.Textbox(label="Output", interactive=False)
+
+        submit_button.click(process_upload, inputs=[file_footage, text_video_description], outputs=output_text)
+
+        button_hot=gr.Button("更新热点")
+        # button_click=
         html_tips1=gr.HTML(value="没思路可以去pixabay找素材")
         html_tips2=gr.HTML(value="剪辑一般时长30s左右合成时间在15min左右，请耐心等待")
         button=gr.Button("开始剪辑")
@@ -270,6 +360,7 @@ with gr.Blocks() as demo:
 
         video = gr.PlayableVideo()
         button.click(fn=clip, inputs=file_script, outputs=video)
+    
 
 
 demo.launch(share=True)

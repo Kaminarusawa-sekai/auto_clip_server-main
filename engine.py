@@ -1,5 +1,5 @@
 # from moviepy.editor import VideoFileClip, concatenate_videoclips, CompositeVideoClip, ImageClip, afx, AudioFileClip, CompositeAudioClip, TextClip
-from moviepy import VideoFileClip,concatenate_videoclips, CompositeVideoClip, ImageClip, afx, AudioFileClip, CompositeAudioClip, TextClip,AudioClip,vfx
+from moviepy import VideoFileClip,concatenate_videoclips, CompositeVideoClip, ImageClip, afx, AudioFileClip, CompositeAudioClip, TextClip,AudioClip,vfx,ColorClip
 from moviepy.video.tools.drawing import color_gradient
 from moviepy.video.tools.subtitles import SubtitlesClip
 
@@ -11,6 +11,14 @@ import yaml
 import sys
 import os
 import argparse
+
+
+
+
+# 目标分辨率为手机常用分辨率
+target_resolution = (1080, 1920)
+
+
 
 class Engine:
     """
@@ -86,7 +94,7 @@ class Engine:
                     clips_keys.append(clip_name)
                 i=i+1
 
-
+        
             #等待所有线程完成
             for future in futures:
                 future.result()
@@ -102,7 +110,16 @@ class Engine:
             output_path = os.path.join(".", self.project_path, new_video_name + ".mp4")
             self.merge_videos(self.clips_path_map, clips_keys, output_path, self.video_title, self.bgm_obj, self.audio_obj, self.subtitle_obj, self.tail_obj)
             return output_path
-
+    
+    def is_image(path):
+        try:
+            with Image.open(path) as img:
+                # 尝试加载图像数据
+                img.verify()  # .verify() 只需几秒钟即可完成，并且不会将整个图像加载到内存中
+            return True
+        except (IOError, SyntaxError) as e:
+            # 如果打开或验证图像时发生错误，则该文件不是有效的图像文件
+            return False
     
     def clip_video(self, tag, video_path, start_time, end_time, new_video_name, keep_full_audio, audio_volume):
         """
@@ -118,7 +135,13 @@ class Engine:
         try:
             #根据video_path获取文件名
             file_name = os.path.basename(video_path)
-            video_clip = VideoFileClip(video_path)
+            video_clip =None
+            if Engine.is_image(video_path):
+                video_clip=ImageClip(video_path,duration=5)
+                # image.write_videofile(video_path, codec="libx264", preset="ultrafast",fps=24)
+            else:
+                video_clip = VideoFileClip(video_path)
+
             if video_clip.audio==None:
                 print(os.path.basename(video_path)+"No audio")
                 audio_clip_path = None
@@ -283,6 +306,36 @@ class Engine:
             #视频写入背景音乐 
             final_video.audio=audio_clip_add
             # final_video = final_video.set_audio(audio_clip_add)
+
+            # 计算需要的缩放比例，以适应目标分辨率同时保持宽高比
+            ratio = min(target_resolution[0]/final_video.size[0], target_resolution[1]/final_video.size[1])
+            new_size = (int(final_video.size[0] * ratio), int(final_video.size[1] * ratio))
+
+            # 调整大小但保持比例
+            clip_resized = final_video.resize(new_size)
+
+            # 创建一个背景色块作为填充
+            background = ColorClip(size=target_resolution, color=(0, 0, 0)) # RGB for yellow
+
+            # 创建顶部和底部标题
+            top_title_text = video_title
+            bottom_title_text = video_title
+
+            # 设置字体大小、颜色以及位置
+            font_size = subtitle_obj["字号"]
+            title_clip_top = TextClip(top_title_text, fontsize=font_size, color='black', font=subtitle_obj["字体"])
+            title_clip_bottom = TextClip(bottom_title_text, fontsize=font_size, color='black', font=subtitle_obj["字体"])
+
+            # 根据背景尺寸计算标题的位置
+            title_clip_top = title_clip_top.set_position(('center', 'top')).set_duration(final_video.duration)
+            title_clip_bottom = title_clip_bottom.set_position(('center', 'bottom')).set_duration(final_video.duration)
+
+            # 将调整后的视频置于黄色背景中央
+            final_video = CompositeVideoClip([background,
+                                            clip_resized.set_position(('center', 'center')),
+                                            title_clip_top,
+                                            title_clip_bottom],
+                                            size=target_resolution)
 
             final_video.write_videofile(output_path, codec='libx264')
             

@@ -98,6 +98,7 @@ class AutoGen:
         #获取倒数第一个item的内容
         last_scene = subtitle_list[-1]["镜头"]
 
+
         tts = edge_tts.Communicate(text=full_text, voice=voice, rate=self.rate, volume=self.volume)
         submaker = edge_tts.SubMaker()  
         xt = ""
@@ -123,7 +124,7 @@ class AutoGen:
                         if i <len(subtitle_list)-1:
                             scene_duration[i] = round(du * 1e-7, 2) 
                         else:
-                            scene_duration[i] = round(du * 1e-7,2) + 3
+                            scene_duration[i] = round(du * 1e-7,2) + 1
                         i = i + 1
                     
                     # else :

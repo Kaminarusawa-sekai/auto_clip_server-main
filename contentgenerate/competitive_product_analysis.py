@@ -20,7 +20,7 @@ from contentgenerate import llm_base
 
 
 
-def get_industry_segmentation_anaysis(enterprise_name,product_name,product_description):
+def get_competitive_product_anaysis(enterprise_name,product_name,product_description):
     template='''
 
         背景：
@@ -97,5 +97,5 @@ if __name__ == '__main__':
 4. **技术实现路径**
    - 基于云计算架构搭建平台框架，采用容器化部署方式保证系统的高可用性和弹性伸缩能力；运用NLP技术对文本内容进行语义理解和分类，结合语音识别技术实现语音转文字功能，再通过深度学习算法训练智能应答模型；利用大数据分析技术挖掘用户行为数据，为智能分发策略提供依据。'''
    
-    get_industry_segmentation_anaysis(enterprise_name,product_name,product_description)
+    get_competitive_product_anaysis(enterprise_name,product_name,product_description)
 

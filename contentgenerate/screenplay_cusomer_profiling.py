@@ -77,8 +77,8 @@ def get_custmer_profiling_to_screenplay(enterprise_name,customer_profiling):
         {customer_profiling}
 
     '''
-    template=template.format(customer_profiling=customer_profiling)
-    input=input.format(enterprise_name=enterprise_name,customer_profiling=customer_profiling)
+    template=template.format(enterprise_name=enterprise_name,customer_profiling=customer_profiling)
+    input=input.format(customer_profiling=customer_profiling)
     res=llm_base.get_Tongyi_response(template,input)
     return res
 
@@ -166,6 +166,7 @@ if __name__ == '__main__':
 #### 审查与修订
 
 完成初稿后，仔细检查报告的内容准确性、逻辑连贯性和语言表达质量，必要时进行修订以提高报告的质量。确保所有数据来源可靠，引用准确，并且语言表达清晰明了，便于读者理解和应用。'''
+
     get_custmer_profiling_to_screenplay(characterisitic)
 
 
